@@ -812,15 +812,12 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
 ══════════════════════════════════════════════════════ */
 
 /**
- * The chatbot parses free-form text commands and maps them to
- * inventory actions. It is entirely rule-based — no external API.
- *
- * Supported intents:
- *  ADD    — "add N [model] [type] [to store]"
- *  REMOVE — "remove/subtract N [model] [type] [from store]"
- *  SET    — "set [model] [type] [store] to N"
+ * Supported intents (all local JS, no external API):
+ *  ADD      — "add N [model] [type] [to store]"
+ *  REMOVE   — "remove N [model] [type] [from store]"
+ *  SET      — "set [model] [type] [store] to N"
  *  TRANSFER — "transfer N [model] [from store] to [store]"
- *  SHOW   — "show [model]"
+ *  SHOW     — "show [model]"
  */
 
 const chatInput = document.getElementById('chat-input');
@@ -847,85 +844,228 @@ function appendMsg(role, html) {
   msgs.scrollTop = msgs.scrollHeight;
 }
 
-/* ── Normalisation helpers ── */
+/* ─────────────────────────────────────────────────────
+   NORMALISATION
+───────────────────────────────────────────────────── */
 
-const BRAND_ALIASES = {
-  'iphone': 'Apple', 'apple': 'Apple',
-  'samsung': 'Samsung', 'galaxy': 'Samsung',
-  'motorola': 'Motorola', 'moto': 'Motorola',
-  'ipad': 'Apple iPad',
-};
-
-const CASUAL_WORDS = /\b(bro|hey|yo|so|i|got|received|just|today|added|transferred|sent|moved|send|move|transferred)\b/gi;
-
-function normalize(text) {
-  return text.toLowerCase().replace(CASUAL_WORDS, '').replace(/\s+/g, ' ').trim();
+/**
+ * normalizeText:
+ *  - lowercase
+ *  - "iphone11" → "iphone 11"  (letter→digit only; never splits digit→letter
+ *    so "6s", "5g", "xs" stay intact as single tokens)
+ *  - "i phone" / "i pad" → "iphone" / "ipad"
+ *  - collapse whitespace
+ */
+function normalizeText(raw) {
+  return raw
+    .toLowerCase()
+    .replace(/([a-z])(\d)/g, '$1 $2')
+    .replace(/\bi\s+(phone|pad)\b/g, 'i$1')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-/** Extract a number from the text. Returns null if none found. */
+/** Same normalisation applied to stored model names for apples-to-apples comparison. */
+function normalizeModelName(name) {
+  return name
+    .toLowerCase()
+    .replace(/([a-z])(\d)/g, '$1 $2')
+    .replace(/\bi\s+(phone|pad)\b/g, 'i$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Extract the first integer from text. Returns null if none. */
 function extractNumber(text) {
   const m = text.match(/\b(\d+)\b/);
   return m ? parseInt(m[1], 10) : null;
 }
 
-/** Detect store code in text (g1/g2/g3) */
+/** Extract store code (G1/G2/G3). Operates on RAW text. */
 function extractStore(text) {
   const m = text.match(/\b(g[123])\b/i);
   return m ? m[1].toUpperCase() : null;
 }
 
-/** Detect two stores for transfer: "from g1 to g2" */
+/** Extract transfer stores from RAW text: "from g1 to g2". */
 function extractTransferStores(text) {
   const m = text.match(/from\s+(g[123])\s+to\s+(g[123])/i);
   if (m) return { from: m[1].toUpperCase(), to: m[2].toUpperCase() };
+  const fromM = text.match(/from\s+(g[123])/i);
+  const toM   = text.match(/to\s+(g[123])/i);
+  if (fromM && toM) return { from: fromM[1].toUpperCase(), to: toM[1].toUpperCase() };
   return null;
 }
 
-/** Detect part type */
+/** Detect part type from RAW text. Defaults to LCD. */
 function extractType(text) {
   if (/digitizer/i.test(text)) return 'Digitizer';
-  if (/lcd|screen|glass display/i.test(text)) return 'LCD';
-  return 'LCD'; // default
+  return 'LCD';
 }
 
-/**
- * Find best matching inventory items.
- * Scores by how many words of the query appear in the model name.
- * Returns sorted array (highest score first).
- */
-function findMatches(query, store, type) {
-  const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 1);
-  return inventory
-    .map(item => {
-      const modelLow = item.model.toLowerCase();
-      let score = words.reduce((s, w) => s + (modelLow.includes(w) ? 1 : 0), 0);
-      // bonus for store / type match
-      if (store && item.store === store) score += 0.5;
-      if (type  && item.type  === type)  score += 0.5;
-      return { item, score };
-    })
-    .filter(x => x.score > 0)
-    .sort((a, b) => b.score - a.score);
+/* ─────────────────────────────────────────────────────
+   MODEL FRAGMENT EXTRACTION
+   ─────────────────────────────────────────────────────
+   Strategy: work on RAW text first to strip store codes
+   and transfer clauses (before normalizeText would split
+   "g1" → "g 1"), then normalize, then discard tokens that
+   are clearly not part of a model name.
+   CRITICAL: preserve model numbers — they are the primary
+   disambiguation signal (what prevents "iphone 11" from
+   matching "iPhone 6").
+───────────────────────────────────────────────────── */
+
+// Tokens that are NEVER part of a model name
+const ALWAYS_DISCARD = new Set([
+  'add','added','remove','removed','subtract','set','transfer','transferred',
+  'move','moved','send','sent','got','received','sold','used','take','took',
+  'lost','minus','lcd','digitizer','screen','screens','glass','display',
+  'unit','units','bro','hey','yo','just','today','please','from','to','at',
+  'into','for','piece','pieces','the','an',
+]);
+
+// Single letters that are valid model-name prefixes (kept only when followed by a number)
+const MODEL_PREFIX_LETTERS = new Set(['a', 's', 'x']);
+
+function extractModelFragment(rawText) {
+  let s = rawText;
+
+  // 1. Strip store codes while still in raw form (g1/g2/g3)
+  s = s.replace(/\bg[123]\b/gi, ' ');
+
+  // 2. Strip "from <anything>" — covers "from g1" and "from g1 to g2"
+  s = s.replace(/\bfrom\b.+/i, '');
+
+  // 3. Strip "to <number>" set-qty pattern
+  s = s.replace(/\bto\s+\d+\b/gi, '');
+
+  // 4. Strip remaining "to" preposition (e.g. "add 4 lcd to iphone 13" → "add 4 lcd iphone 13")
+  s = s.replace(/\bto\b/gi, '');
+
+  // 5. Normalize the cleaned string
+  s = normalizeText(s);
+
+  // 6. Token-by-token discard — preserves model numbers intact
+  const tokens = s.split(/\s+/).filter(Boolean);
+  const kept = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const tok     = tokens[i];
+    const nextTok = tokens[i + 1] || '';
+
+    // Discard known non-model tokens
+    if (ALWAYS_DISCARD.has(tok)) continue;
+
+    // Lone "i" (from "i got", "i have") is always a pronoun, not a model token
+    if (tok === 'i') continue;
+
+    // Single letter: keep only if it's a known model prefix AND next token is a number
+    // e.g. "a" before "15" → keep (Samsung A15), "a" before "pro" → discard
+    if (tok.length === 1 && /^[a-z]$/.test(tok)) {
+      if (MODEL_PREFIX_LETTERS.has(tok) && /^\d+$/.test(nextTok)) {
+        kept.push(tok);
+      }
+      continue;
+    }
+
+    kept.push(tok);
+  }
+
+  // 7. Strip the leading quantity integer (the first token if it's a bare number)
+  if (kept.length > 0 && /^\d+$/.test(kept[0])) kept.shift();
+
+  return kept.join(' ').trim();
 }
 
-/** Build a model name fragment from text (strip stores/numbers/type words) */
-function extractModelFragment(text) {
-  return text
-    .replace(/\b(g[123])\b/gi, '')
-    .replace(/\b(add|remove|subtract|set|to|from|transfer|lcd|digitizer|screen|got|received)\b/gi, '')
-    .replace(/\b\d+\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+/* ─────────────────────────────────────────────────────
+   findBestModelMatch
+   ─────────────────────────────────────────────────────
+   Returns:
+     { item }                  — confident single match
+     { ambiguous, candidates } — multiple equally-scored models
+     null                      — no match found
+
+   Algorithm:
+   1. Normalize the fragment.
+   2. Hard filter: every number token in the query must appear
+      as a whole token in the model name. This is what prevents
+      "iphone 11" from matching "iPhone 6".
+   3. Hard filter: every word token must match a token in the model.
+   4. Score remaining candidates by extra-token penalty
+      (prefer "iPhone 11" over "iPhone 11 Pro Max" when query is "iphone 11").
+   5. Ambiguity check on top-scoring candidates.
+───────────────────────────────────────────────────── */
+function findBestModelMatch(commandFragment, store, partType) {
+  if (!commandFragment) return null;
+
+  const normFrag    = normalizeText(commandFragment);
+  const queryTokens = normFrag.split(/\s+/).filter(Boolean);
+  const queryNums   = queryTokens.filter(t => /^\d+$/.test(t));
+  const queryWords  = queryTokens.filter(t => !/^\d+$/.test(t));
+
+  // Pool: only items matching the requested store and part type
+  let pool = inventory.filter(item =>
+    (!store    || item.store === store) &&
+    (!partType || item.type  === partType)
+  );
+  if (!pool.length) return null;
+
+  // ── Hard filter 1: number tokens must be whole tokens in the model ──
+  // "11" must match a standalone "11" in the model name.
+  // This prevents "iphone 11" from matching "iPhone 6", "iPhone 12", etc.
+  if (queryNums.length) {
+    const nf = pool.filter(item => {
+      const nmToks = normalizeModelName(item.model).split(/\s+/);
+      return queryNums.every(n => nmToks.includes(n));
+    });
+    if (nf.length) pool = nf;
+  }
+
+  // ── Hard filter 2: word tokens must each appear in model tokens ──
+  if (queryWords.length) {
+    const wf = pool.filter(item => {
+      const nmToks = normalizeModelName(item.model).split(/\s+/);
+      return queryWords.every(w =>
+        nmToks.some(mt => mt === w || mt.startsWith(w) || w.startsWith(mt))
+      );
+    });
+    if (wf.length) pool = wf;
+  }
+
+  if (!pool.length) return null;
+
+  // ── Score: penalise extra tokens beyond the query's token count ──
+  // This means "iphone 11" (2 tokens) scores "iPhone 11" (2 model tokens, 0 extra)
+  // higher than "iPhone 11 Pro" (3 model tokens, 1 extra) or "iPhone 11 Pro Max" (2 extra).
+  const scored = pool.map(item => {
+    const normModel = normalizeModelName(item.model);
+    const modelToks = normModel.split(/\s+/).filter(Boolean);
+    const extraToks = Math.max(0, modelToks.length - queryTokens.length);
+    const exact     = normModel === normFrag ? 1 : 0;
+    const score     = 100 - extraToks * 15 + exact * 100;
+    return { item, score, normModel };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const topScore       = scored[0].score;
+  const topCandidates  = scored.filter(x => x.score === topScore);
+  const distinctModels = [...new Set(topCandidates.map(x => x.item.model))];
+
+  if (distinctModels.length > 1) {
+    return { ambiguous: true, candidates: distinctModels.slice(0, 5) };
+  }
+  return { item: scored[0].item };
 }
 
-/* ── Command parser ── */
+/* ─────────────────────────────────────────────────────
+   COMMAND PARSER
+───────────────────────────────────────────────────── */
 function parseCommand(raw) {
-  const text  = normalize(raw);
   const defaultStore = document.getElementById('default-store').value;
 
   // ── SHOW ──
-  if (/^show\b/.test(text)) {
-    const fragment = text.replace(/^show\s+/, '').trim();
+  if (/^\s*show\b/i.test(raw)) {
+    const fragment = raw.replace(/^\s*show\s+/i, '').trim();
     searchInput.value = fragment;
     searchQ = fragment;
     searchClear.classList.toggle('visible', fragment.length > 0);
@@ -934,27 +1074,23 @@ function parseCommand(raw) {
   }
 
   // ── TRANSFER ──
-  if (/\b(transfer|move|send)\b/.test(text)) {
-    const stores = extractTransferStores(text);
-    if (!stores) {
-      // try to infer from a single "from gX" and default
-      const fromM = text.match(/from\s+(g[123])/i);
-      const toM   = text.match(/to\s+(g[123])/i);
-      if (!fromM || !toM) return '❓ I need both stores — try: <em>transfer 2 s21 from g1 to g2</em>';
-      stores.from = fromM[1].toUpperCase();
-      stores.to   = toM[1].toUpperCase();
-    }
-    const qty      = extractNumber(text) || 1;
-    const partType = extractType(text);
-    const fragment = extractModelFragment(text);
+  if (/\b(transfer|move|send)\b/i.test(raw)) {
+    const stores = extractTransferStores(raw);
+    if (!stores) return '❓ I need both stores — try: <em>transfer 2 iphone 11 from g1 to g2</em>';
 
-    const candidates = findMatches(fragment, stores.from, partType)
-      .filter(x => x.item.store === stores.from && x.item.type === partType);
+    const qty      = extractNumber(raw) || 1;
+    const partType = extractType(raw);
+    const fragment = extractModelFragment(raw);
 
-    if (!candidates.length) return `❓ Couldn't find a matching model at <em>${stores.from}</em> for "<em>${escHtml(fragment)}</em>"`;
+    if (!fragment) return '❓ Which model? Try: <em>transfer 1 iphone 11 lcd from g1 to g2</em>';
 
-    const srcItem = candidates[0].item;
-    // find or create destination item
+    const result = findBestModelMatch(fragment, stores.from, partType);
+    if (!result)
+      return `❓ No <em>${partType}</em> match for "<em>${escHtml(fragment)}</em>" at ${stores.from}.`;
+    if (result.ambiguous)
+      return `❓ Multiple matches — which one?<br>${result.candidates.map(m => `• <em>${escHtml(m)}</em>`).join('<br>')}`;
+
+    const srcItem = result.item;
     let dstItem = inventory.find(i =>
       i.model === srcItem.model && i.type === srcItem.type &&
       i.store === stores.to     && i.brand === srcItem.brand
@@ -969,83 +1105,97 @@ function parseCommand(raw) {
       { id: srcItem.id, oldQty: srcItem.qty },
       { id: dstItem.id, oldQty: dstItem.qty },
     ]);
-
     srcItem.qty = Math.max(0, srcItem.qty - actualQty);
     dstItem.qty = (dstItem.qty || 0) + actualQty;
     srcItem.updatedAt = dstItem.updatedAt = Date.now();
 
-    const msg = `Transferred ${actualQty}x <em>${srcItem.model}</em> (${partType}) from <em>${stores.from}</em> → <em>${stores.to}</em>`;
+    const msg = `Transferred ${actualQty}× <em>${srcItem.model}</em> (${partType}) `
+              + `from <em>${stores.from}</em> → <em>${stores.to}</em>`;
     logActivity('edit', msg.replace(/<[^>]+>/g, ''));
     save(); render();
-    showChatUndo('Last: ' + msg.replace(/<[^>]+>/g, ''));
+    showChatUndo('Last: transfer');
     return `✓ ${msg}`;
   }
 
   // ── SET ──
-  if (/\bset\b/.test(text) && /\bto\s+\d+/.test(text)) {
-    const setQtyM = text.match(/to\s+(\d+)/);
-    const qty     = setQtyM ? parseInt(setQtyM[1], 10) : null;
-    if (qty === null) return '❓ Tell me what quantity to set — e.g. <em>set iphone 11 lcd g1 to 7</em>';
-    const store    = extractStore(text) || defaultStore;
-    const partType = extractType(text);
-    const fragment = extractModelFragment(text).replace(/\bto\b.*/,'').trim();
+  if (/\bset\b/i.test(raw) && /\bto\s+\d+/i.test(raw)) {
+    const setM  = raw.match(/\bto\s+(\d+)/i);
+    const qty   = setM ? parseInt(setM[1], 10) : null;
+    if (qty === null) return '❓ What quantity? Try: <em>set iphone 11 lcd g1 to 7</em>';
 
-    const candidates = findMatches(fragment, store, partType)
-      .filter(x => x.item.store === store && x.item.type === partType);
-    if (!candidates.length) return `❓ No match for "<em>${escHtml(fragment)}</em>" at ${store}`;
+    const store    = extractStore(raw) || defaultStore;
+    const partType = extractType(raw);
+    const fragment = extractModelFragment(raw);
 
-    const item = candidates[0].item;
+    if (!fragment) return '❓ Which model? Try: <em>set iphone 11 lcd g1 to 7</em>';
+
+    const result = findBestModelMatch(fragment, store, partType);
+    if (!result)
+      return `❓ No match for "<em>${escHtml(fragment)}</em>" at ${store}.`;
+    if (result.ambiguous)
+      return `❓ Multiple matches — which one?<br>${result.candidates.map(m => `• <em>${escHtml(m)}</em>`).join('<br>')}`;
+
+    const item = result.item;
     saveChatUndo([{ id: item.id, oldQty: item.qty }]);
     item.qty = qty;
     item.updatedAt = Date.now();
-    const msg = `Set <em>${item.model}</em> (${partType}) [${store}] to <em>${qty}</em>`;
-    logActivity('edit', msg.replace(/<[^>]+>/g,''));
+
+    const msg = `Set <em>${item.model}</em> (${partType}) [${store}] → qty <em>${qty}</em>`;
+    logActivity('edit', msg.replace(/<[^>]+>/g, ''));
     save(); render();
     showChatUndo('Last: set qty');
     return `✓ ${msg}`;
   }
 
   // ── REMOVE ──
-  if (/\b(remove|subtract|sold|used|take|took|lost|minus)\b/.test(text)) {
-    const qty      = extractNumber(text) || 1;
-    const store    = extractStore(text) || defaultStore;
-    const partType = extractType(text);
-    const fragment = extractModelFragment(text);
+  if (/\b(remove|subtract|sold|used|take|took|lost|minus)\b/i.test(raw)) {
+    const qty      = extractNumber(raw) || 1;
+    const store    = extractStore(raw) || defaultStore;
+    const partType = extractType(raw);
+    const fragment = extractModelFragment(raw);
 
-    const candidates = findMatches(fragment, store, partType)
-      .filter(x => x.item.store === store && x.item.type === partType);
-    if (!candidates.length) return `❓ No match for "<em>${escHtml(fragment)}</em>" at ${store} for ${partType}`;
+    if (!fragment) return '❓ Which model? Try: <em>remove 2 iphone 11 lcd from g1</em>';
 
-    const item = candidates[0].item;
+    const result = findBestModelMatch(fragment, store, partType);
+    if (!result)
+      return `❓ No match for "<em>${escHtml(fragment)}</em>" at ${store}.`;
+    if (result.ambiguous)
+      return `❓ Multiple matches — which one?<br>${result.candidates.map(m => `• <em>${escHtml(m)}</em>`).join('<br>')}`;
+
+    const item = result.item;
     saveChatUndo([{ id: item.id, oldQty: item.qty }]);
     item.qty = Math.max(0, item.qty - qty);
     item.updatedAt = Date.now();
+
     const msg = `Removed ${qty} — <em>${item.model}</em> (${partType}) [${store}] → qty now ${item.qty}`;
-    logActivity('edit', msg.replace(/<[^>]+>/g,''));
+    logActivity('edit', msg.replace(/<[^>]+>/g, ''));
     save(); render();
     showChatUndo('Last: removed ' + qty);
     return `✓ ${msg}`;
   }
 
-  // ── ADD (default intent) ──
+  // ── ADD (default / fallback intent) ──
   {
-    const qty      = extractNumber(text) || 1;
-    const store    = extractStore(text) || defaultStore;
-    const partType = extractType(text);
-    const fragment = extractModelFragment(text);
+    const qty      = extractNumber(raw) || 1;
+    const store    = extractStore(raw) || defaultStore;
+    const partType = extractType(raw);
+    const fragment = extractModelFragment(raw);
 
     if (!fragment) return '❓ I didn\'t catch that. Try: <em>add 4 iphone 11 lcd to g1</em>';
 
-    const candidates = findMatches(fragment, store, partType)
-      .filter(x => x.item.store === store && x.item.type === partType);
-    if (!candidates.length) return `❓ No match for "<em>${escHtml(fragment)}</em>" at ${store}. Check spelling or use the Add button.`;
+    const result = findBestModelMatch(fragment, store, partType);
+    if (!result)
+      return `❓ No match for "<em>${escHtml(fragment)}</em>" at ${store}. Check spelling or use the Add button.`;
+    if (result.ambiguous)
+      return `❓ Multiple matches — which one?<br>${result.candidates.map(m => `• <em>${escHtml(m)}</em>`).join('<br>')}`;
 
-    const item = candidates[0].item;
+    const item = result.item;
     saveChatUndo([{ id: item.id, oldQty: item.qty }]);
     item.qty = (item.qty || 0) + qty;
     item.updatedAt = Date.now();
+
     const msg = `Added ${qty} — <em>${item.model}</em> (${partType}) [${store}] → qty now ${item.qty}`;
-    logActivity('add', msg.replace(/<[^>]+>/g,''));
+    logActivity('add', msg.replace(/<[^>]+>/g, ''));
     save(); render();
     showChatUndo('Last: added ' + qty);
     return `✓ ${msg}`;
