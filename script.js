@@ -753,5 +753,5 @@ document.addEventListener('keydown', e => {
 });
 
 // ─── INIT ────────────────────────────────────────────────────────
-loadData();
+LoatData();
 render();
