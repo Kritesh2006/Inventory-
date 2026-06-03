@@ -1,5 +1,5 @@
 /* =============================================
-   TECHY SCREEN INVENTORY — script.js
+   SCREEN INVENTORY — script.js
    ============================================= */
 
 'use strict';
@@ -129,7 +129,7 @@ let editingId = null;  // null = adding new
 let deleteTargetId = null;
 
 // ─── PERSISTENCE ────────────────────────────────────────────────
-const STORAGE_KEY = 'techy_inventory_v1';
+const STORAGE_KEY = 'Phone_inventory_v1';
 
 function saveData() {
   try {
@@ -604,7 +604,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `techy_inventory_${todayStr()}.csv`;
+  a.download = `Phone_inventory_${todayStr()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('✓ Exported to CSV');
