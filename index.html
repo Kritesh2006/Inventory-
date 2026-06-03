@@ -3,118 +3,258 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kiosk · Screen Inventory</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Ron Inventory — Techy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header class="site-header">
-    <div class="header-inner">
-      <div class="brand">
-        <span class="brand-icon">⚙</span>
-        <div>
-          <div class="brand-name">Kiosk</div>
-          <div class="brand-sub">Screen Inventory</div>
+  <!-- ══════════════════════════════════════════
+       BOOT SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="boot-screen">
+    <div class="boot-bg-grid"></div>
+    <div class="boot-scanline"></div>
+    <div class="boot-center">
+      <div class="boot-logo">
+        <div class="boot-logo-icon">⬡</div>
+        <div class="boot-logo-text">RON<span>SYS</span></div>
+      </div>
+      <div class="boot-terminal" id="boot-terminal">
+        <div class="boot-line" data-delay="200">
+          <span class="boot-prompt">&gt;</span>
+          <span class="boot-txt">Ron Server Activated</span>
+          <span class="boot-ok">[ OK ]</span>
+        </div>
+        <div class="boot-line" data-delay="900">
+          <span class="boot-prompt">&gt;</span>
+          <span class="boot-txt">Location: <span class="boot-redact">******</span></span>
+          <span class="boot-ok">[ OK ]</span>
+        </div>
+        <div class="boot-line" data-delay="1600">
+          <span class="boot-prompt">&gt;</span>
+          <span class="boot-txt">Inventory Core Loading...</span>
+          <span class="boot-loader" id="boot-loader"></span>
+        </div>
+        <div class="boot-line" data-delay="2600">
+          <span class="boot-prompt">&gt;</span>
+          <span class="boot-txt">Secure Local Mode</span>
+          <span class="boot-ok ok-green">[ ON ]</span>
+        </div>
+        <div class="boot-line" data-delay="3100">
+          <span class="boot-prompt">&gt;</span>
+          <span class="boot-txt">No External API Connected</span>
+          <span class="boot-ok ok-dim">[ OFFLINE ]</span>
         </div>
       </div>
-      <div class="header-actions">
-        <button class="btn btn-outline" id="btn-import" title="Import CSV">
-          ↑ Import
+      <div class="boot-progress-wrap">
+        <div class="boot-progress-bar" id="boot-progress"></div>
+      </div>
+      <div class="boot-status" id="boot-status">Initializing...</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN APP
+  ══════════════════════════════════════════ -->
+  <div id="app" class="hidden">
+
+    <!-- TOP NAV -->
+    <nav class="top-nav">
+      <div class="nav-left">
+        <div class="nav-logo">
+          <span class="nav-logo-icon">⬡</span>
+          <span class="nav-logo-name">RON<span>SYS</span></span>
+        </div>
+        <div class="nav-subtitle">Inventory v2.0</div>
+      </div>
+      <div class="nav-right">
+        <div class="default-store-wrap">
+          <label class="ds-label">Default Store</label>
+          <select id="default-store" class="ds-select">
+            <option value="G1">G1</option>
+            <option value="G2">G2</option>
+            <option value="G3">G3</option>
+          </select>
+        </div>
+        <button class="icon-btn" id="btn-toggle-log" title="Activity Log">
+          <span>📋</span>
+          <span class="badge-count" id="log-badge">0</span>
         </button>
-        <button class="btn btn-outline" id="btn-export" title="Export CSV">
-          ↓ Export
-        </button>
-        <button class="btn btn-primary" id="btn-add">
-          + Add Model
+        <button class="icon-btn" id="btn-toggle-chat" title="Ron Assistant">
+          <span>💬</span>
         </button>
       </div>
-    </div>
-  </header>
+    </nav>
 
-  <!-- SUMMARY CARDS -->
-  <section class="summary-section">
-    <div class="summary-grid">
-      <div class="summary-card" data-brand-filter="">
-        <div class="summary-label">Total Items</div>
-        <div class="summary-count" id="summary-total">0</div>
-        <div class="summary-low" id="summary-low-total"></div>
+    <!-- SUMMARY BAR -->
+    <div class="summary-bar" id="summary-bar">
+      <div class="sum-block" id="sum-total">
+        <div class="sum-val" id="sum-total-val">0</div>
+        <div class="sum-lbl">Total Units</div>
       </div>
-      <div class="summary-card clickable" data-brand-filter="Apple">
-        <div class="summary-label">iPhone</div>
-        <div class="summary-count" id="summary-iphone">0</div>
-        <div class="summary-low" id="summary-low-iphone"></div>
+      <div class="sum-divider"></div>
+      <div class="sum-block sum-brand" data-filter-brand="Apple">
+        <div class="sum-val" id="sum-apple">0</div>
+        <div class="sum-lbl">iPhone</div>
       </div>
-      <div class="summary-card clickable" data-brand-filter="Samsung">
-        <div class="summary-label">Samsung</div>
-        <div class="summary-count" id="summary-samsung">0</div>
-        <div class="summary-low" id="summary-low-samsung"></div>
+      <div class="sum-block sum-brand" data-filter-brand="Samsung">
+        <div class="sum-val" id="sum-samsung">0</div>
+        <div class="sum-lbl">Samsung</div>
       </div>
-      <div class="summary-card clickable" data-brand-filter="Motorola">
-        <div class="summary-label">Motorola</div>
-        <div class="summary-count" id="summary-motorola">0</div>
-        <div class="summary-low" id="summary-low-motorola"></div>
+      <div class="sum-block sum-brand" data-filter-brand="Motorola">
+        <div class="sum-val" id="sum-motorola">0</div>
+        <div class="sum-lbl">Motorola</div>
       </div>
-      <div class="summary-card clickable" data-brand-filter="Apple iPad">
-        <div class="summary-label">iPad</div>
-        <div class="summary-count" id="summary-ipad">0</div>
-        <div class="summary-low" id="summary-low-ipad"></div>
+      <div class="sum-block sum-brand" data-filter-brand="Apple iPad">
+        <div class="sum-val" id="sum-ipad">0</div>
+        <div class="sum-lbl">iPad</div>
       </div>
-    </div>
-  </section>
-
-  <!-- CONTROLS -->
-  <section class="controls-section">
-    <div class="controls-inner">
-      <div class="search-wrap">
-        <span class="search-icon">⌕</span>
-        <input type="text" id="search-input" class="search-input" placeholder="Search model, brand, type…" autocomplete="off" />
-        <button class="search-clear" id="search-clear" title="Clear">✕</button>
+      <div class="sum-divider"></div>
+      <div class="sum-block sum-store" data-filter-store="G1">
+        <div class="sum-val" id="sum-g1">0</div>
+        <div class="sum-lbl">G1</div>
       </div>
-      <div class="filter-tabs" id="filter-tabs">
-        <button class="tab active" data-filter="">All</button>
-        <button class="tab" data-filter="Apple">iPhone</button>
-        <button class="tab" data-filter="Samsung">Samsung</button>
-        <button class="tab" data-filter="Samsung-S">Samsung S</button>
-        <button class="tab" data-filter="Samsung-Note">Samsung Note</button>
-        <button class="tab" data-filter="Samsung-A">Samsung A</button>
-        <button class="tab" data-filter="Motorola">Motorola</button>
-        <button class="tab" data-filter="Apple iPad">iPad</button>
-        <button class="tab" data-filter="low">⚠ Low Stock</button>
+      <div class="sum-block sum-store" data-filter-store="G2">
+        <div class="sum-val" id="sum-g2">0</div>
+        <div class="sum-lbl">G2</div>
+      </div>
+      <div class="sum-block sum-store" data-filter-store="G3">
+        <div class="sum-val" id="sum-g3">0</div>
+        <div class="sum-lbl">G3</div>
       </div>
     </div>
-  </section>
 
-  <!-- TABLE -->
-  <main class="main-content">
-    <div class="table-wrap">
-      <table class="inv-table" id="inv-table">
-        <thead>
-          <tr>
-            <th class="col-brand">Brand</th>
-            <th class="col-model">Model</th>
-            <th class="col-type">Type</th>
-            <th class="col-qty">Qty</th>
-            <th class="col-min">Min</th>
-            <th class="col-notes">Notes</th>
-            <th class="col-updated">Updated</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="inv-tbody"></tbody>
-      </table>
-      <div class="empty-state" id="empty-state" style="display:none">
-        <div class="empty-icon">📦</div>
-        <div class="empty-text">No items found</div>
-        <div class="empty-sub">Try a different search or filter</div>
+    <!-- MAIN LAYOUT -->
+    <div class="app-body">
+
+      <!-- LEFT: TABLE PANEL -->
+      <div class="table-panel" id="table-panel">
+
+        <!-- CONTROLS -->
+        <div class="controls-bar">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="search-input" class="search-input" placeholder="Search model, brand, type…" autocomplete="off" />
+            <button class="search-clear" id="search-clear">✕</button>
+          </div>
+          <div class="filter-row">
+            <select id="filter-brand" class="filter-sel">
+              <option value="">All Brands</option>
+              <option value="Apple">iPhone</option>
+              <option value="Samsung">Samsung</option>
+              <option value="Samsung-S">Samsung S</option>
+              <option value="Samsung-Note">Samsung Note</option>
+              <option value="Samsung-A">Samsung A</option>
+              <option value="Motorola">Motorola</option>
+              <option value="Apple iPad">iPad</option>
+            </select>
+            <select id="filter-type" class="filter-sel">
+              <option value="">All Types</option>
+              <option value="LCD">LCD</option>
+              <option value="Digitizer">Digitizer</option>
+            </select>
+            <select id="filter-store" class="filter-sel">
+              <option value="">All Stores</option>
+              <option value="G1">G1</option>
+              <option value="G2">G2</option>
+              <option value="G3">G3</option>
+            </select>
+            <button class="btn-ghost-sm" id="btn-clear-filters">Clear</button>
+          </div>
+          <div class="action-row">
+            <button class="btn-primary" id="btn-add">+ Add Model</button>
+            <button class="btn-outline" id="btn-export">↓ CSV</button>
+            <button class="btn-outline" id="btn-import">↑ Import</button>
+            <button class="btn-danger-ghost" id="btn-reset">↺ Reset</button>
+          </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-wrap" id="table-wrap">
+          <table class="inv-table" id="inv-table">
+            <thead>
+              <tr>
+                <th>Brand</th>
+                <th>Model</th>
+                <th>Network</th>
+                <th>Type</th>
+                <th>Store</th>
+                <th>Qty</th>
+                <th>Notes</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state" style="display:none">
+            <div class="empty-icon">📦</div>
+            <div class="empty-text">No items found</div>
+            <div class="empty-sub">Try adjusting your search or filters</div>
+          </div>
+        </div>
+        <div class="table-footer" id="table-footer"></div>
+      </div>
+
+    </div><!-- /app-body -->
+  </div><!-- /app -->
+
+  <!-- ══════════════════════════════════════════
+       CHAT DRAWER
+  ══════════════════════════════════════════ -->
+  <div class="drawer chat-drawer" id="chat-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <span class="drawer-icon">💬</span> Ron Inventory Assistant
+      </div>
+      <button class="drawer-close" id="chat-close">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg bot">
+        <div class="chat-bubble">
+          Hey! I'm Ron. Tell me what you need.<br><br>
+          Try: <em>"add 4 iphone 11 lcd"</em><br>
+          or: <em>"transfer 2 s21 from g1 to g2"</em><br>
+          or: <em>"show iphone 14"</em>
+        </div>
       </div>
     </div>
-    <div class="table-footer" id="table-footer"></div>
-  </main>
+    <div class="chat-undo-bar" id="chat-undo-bar" style="display:none">
+      <span id="chat-undo-label">Last action applied</span>
+      <button class="btn-undo" id="btn-undo">↩ Undo</button>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Type a command…" autocomplete="off" />
+      <button class="chat-send" id="chat-send">→</button>
+    </div>
+  </div>
 
-  <!-- MODAL: Add / Edit -->
+  <!-- ══════════════════════════════════════════
+       ACTIVITY LOG DRAWER
+  ══════════════════════════════════════════ -->
+  <div class="drawer log-drawer" id="log-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <span class="drawer-icon">📋</span> Activity Log
+      </div>
+      <button class="drawer-close" id="log-close">✕</button>
+    </div>
+    <div class="log-list" id="log-list">
+      <div class="log-empty">No activity yet.</div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn-ghost-sm" id="btn-clear-log">Clear Log</button>
+    </div>
+  </div>
+
+  <!-- DRAWER BACKDROP -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Add / Edit
+  ══════════════════════════════════════════ -->
   <div class="modal-overlay" id="modal-overlay" style="display:none">
     <div class="modal">
       <div class="modal-header">
@@ -132,7 +272,7 @@
               <option value="Apple iPad">Apple (iPad)</option>
             </select>
           </div>
-          <div class="form-group" id="fg-sub-samsung" style="display:none">
+          <div class="form-group" id="fg-samsung-series" style="display:none">
             <label>Samsung Series</label>
             <select id="f-samsung-series">
               <option value="S">S Series</option>
@@ -156,22 +296,37 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Quantity</label>
-            <input type="number" id="f-qty" value="0" min="0" />
+            <label>Network / Version</label>
+            <select id="f-network">
+              <option value="Universal">Universal</option>
+              <option value="4G">4G</option>
+              <option value="5G">5G</option>
+              <option value="Unknown">Unknown</option>
+            </select>
           </div>
           <div class="form-group">
-            <label>Min Stock Alert</label>
-            <input type="number" id="f-min" value="2" min="0" />
+            <label>Store *</label>
+            <select id="f-store">
+              <option value="G1">G1</option>
+              <option value="G2">G2</option>
+              <option value="G3">G3</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" id="f-qty" value="0" min="0" />
           </div>
         </div>
         <div class="form-group">
           <label>Notes</label>
-          <input type="text" id="f-notes" placeholder="Optional notes…" />
+          <input type="text" id="f-notes" placeholder="Compatibility notes, color, OEM/Aftermarket…" />
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
-        <button class="btn btn-primary" id="modal-save">Save Item</button>
+        <button class="btn-ghost-sm" id="modal-cancel">Cancel</button>
+        <button class="btn-primary" id="modal-save">Save Item</button>
       </div>
     </div>
   </div>
@@ -181,22 +336,39 @@
     <div class="modal modal-sm">
       <div class="modal-header">
         <h2 class="modal-title">Delete Item?</h2>
-        <button class="modal-close" id="delete-close">✕</button>
+        <button class="modal-close" id="del-close">✕</button>
       </div>
       <div class="modal-body">
-        <p id="delete-msg" style="margin:0; color:var(--text-secondary)"></p>
+        <p id="del-msg" style="color:var(--text-dim); margin:0"></p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost" id="delete-cancel">Cancel</button>
-        <button class="btn btn-danger" id="delete-confirm">Delete</button>
+        <button class="btn-ghost-sm" id="del-cancel">Cancel</button>
+        <button class="btn-danger" id="del-confirm">Delete</button>
       </div>
     </div>
   </div>
 
-  <!-- HIDDEN: CSV import input -->
-  <input type="file" id="csv-file-input" accept=".csv" style="display:none" />
+  <!-- MODAL: Reset confirm -->
+  <div class="modal-overlay" id="reset-overlay" style="display:none">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Reset to Demo Data?</h2>
+        <button class="modal-close" id="reset-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-dim); margin:0">This will erase all current inventory and reload the default demo data. This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost-sm" id="reset-cancel">Cancel</button>
+        <button class="btn-danger" id="reset-confirm">Reset Everything</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- TOAST -->
+  <!-- Hidden CSV import input -->
+  <input type="file" id="csv-input" accept=".csv" style="display:none" />
+
+  <!-- Toast -->
   <div class="toast" id="toast"></div>
 
   <script src="script.js"></script>
