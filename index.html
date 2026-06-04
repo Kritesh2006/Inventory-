@@ -3,374 +3,643 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ron Inventory — Techy</title>
+  <title>Ron Inventory Server — G2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════
-       BOOT SCREEN
-  ══════════════════════════════════════════ -->
-  <div id="boot-screen">
-    <div class="boot-bg-grid"></div>
-    <div class="boot-scanline"></div>
-    <div class="boot-center">
-      <div class="boot-logo">
-        <div class="boot-logo-icon">⬡</div>
-        <div class="boot-logo-text">RON<span>SYS</span></div>
+<!-- ══════════════════════════════════════════════
+     BOOT SCREEN
+══════════════════════════════════════════════ -->
+<div id="boot-screen">
+  <div class="boot-grid"></div>
+  <div class="boot-scanlines"></div>
+  <div class="boot-center">
+    <div class="boot-logo">
+      <div class="boot-hex">⬡</div>
+      <div class="boot-wordmark">RON<span>SYS</span></div>
+    </div>
+    <div class="boot-terminal" id="boot-terminal">
+      <div class="boot-line" data-delay="250">
+        <span class="bp">&gt;</span>
+        <span class="bt">Ron Server Activated</span>
+        <span class="bk ok">[ OK ]</span>
       </div>
-      <div class="boot-terminal" id="boot-terminal">
-        <div class="boot-line" data-delay="200">
-          <span class="boot-prompt">&gt;</span>
-          <span class="boot-txt">Ron Server Activated</span>
-          <span class="boot-ok">[ OK ]</span>
-        </div>
-        <div class="boot-line" data-delay="900">
-          <span class="boot-prompt">&gt;</span>
-          <span class="boot-txt">Location: <span class="boot-redact">******</span></span>
-          <span class="boot-ok">[ OK ]</span>
-        </div>
-        <div class="boot-line" data-delay="1600">
-          <span class="boot-prompt">&gt;</span>
-          <span class="boot-txt">Inventory Core Loading...</span>
-          <span class="boot-loader" id="boot-loader"></span>
-        </div>
-        <div class="boot-line" data-delay="2600">
-          <span class="boot-prompt">&gt;</span>
-          <span class="boot-txt">Secure Local Mode</span>
-          <span class="boot-ok ok-green">[ ON ]</span>
-        </div>
-        <div class="boot-line" data-delay="3100">
-          <span class="boot-prompt">&gt;</span>
-          <span class="boot-txt">No External API Connected</span>
-          <span class="boot-ok ok-dim">[ OFFLINE ]</span>
-        </div>
+      <div class="boot-line" data-delay="900">
+        <span class="bp">&gt;</span>
+        <span class="bt">Location: <span class="redact">******</span></span>
+        <span class="bk ok">[ OK ]</span>
       </div>
-      <div class="boot-progress-wrap">
-        <div class="boot-progress-bar" id="boot-progress"></div>
+      <div class="boot-line" data-delay="1550">
+        <span class="bp">&gt;</span>
+        <span class="bt">G2 Inventory Core Loading...</span>
+        <span class="bk spin" id="boot-spin"></span>
       </div>
-      <div class="boot-status" id="boot-status">Initializing...</div>
+      <div class="boot-line" data-delay="2600">
+        <span class="bp">&gt;</span>
+        <span class="bt">Secure Local Mode</span>
+        <span class="bk green">[ ON ]</span>
+      </div>
+      <div class="boot-line" data-delay="3100">
+        <span class="bp">&gt;</span>
+        <span class="bt">No External API Connected</span>
+        <span class="bk dim">[ OFFLINE ]</span>
+      </div>
+    </div>
+    <div class="boot-bar-wrap"><div class="boot-bar" id="boot-bar"></div></div>
+    <div class="boot-status" id="boot-status">Initializing…</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════════════ -->
+<div id="app" class="hidden">
+
+  <!-- NAV -->
+  <nav class="top-nav">
+    <div class="nav-left">
+      <span class="nav-hex">⬡</span>
+      <span class="nav-logo">RON<em>SYS</em></span>
+      <span class="nav-tag">G2 · Elmsley</span>
+    </div>
+    <div class="nav-right">
+      <button class="nav-btn" id="btn-open-log" title="Activity Log">
+        📋 <span class="badge" id="log-badge">0</span>
+      </button>
+      <button class="nav-btn active-btn" id="btn-open-asst" title="Assistant">
+        ⚡ Assistant
+      </button>
+    </div>
+  </nav>
+
+  <!-- SUMMARY BAR -->
+  <div class="summary-bar" id="summary-bar">
+    <div class="sum-pill total-pill">
+      <div class="sum-val" id="s-total">0</div>
+      <div class="sum-lbl">G2 Total</div>
+    </div>
+    <div class="sum-div"></div>
+    <div class="sum-pill" data-brand="Apple">
+      <div class="sum-val" id="s-iphone">0</div>
+      <div class="sum-lbl">iPhone</div>
+    </div>
+    <div class="sum-pill" data-brand="Samsung">
+      <div class="sum-val" id="s-samsung">0</div>
+      <div class="sum-lbl">Samsung</div>
+    </div>
+    <div class="sum-pill" data-brand="Motorola">
+      <div class="sum-val" id="s-motorola">0</div>
+      <div class="sum-lbl">Motorola</div>
+    </div>
+    <div class="sum-pill" data-brand="Apple iPad">
+      <div class="sum-val" id="s-ipad">0</div>
+      <div class="sum-lbl">iPad</div>
+    </div>
+    <div class="sum-div"></div>
+    <div class="sum-pill xfer-in-pill">
+      <div class="sum-val" id="s-xfer-in">0</div>
+      <div class="sum-lbl">Xfer In (wk)</div>
+    </div>
+    <div class="sum-pill xfer-out-pill">
+      <div class="sum-val" id="s-xfer-out">0</div>
+      <div class="sum-lbl">Xfer Out (wk)</div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       MAIN APP
-  ══════════════════════════════════════════ -->
-  <div id="app" class="hidden">
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab active" data-tab="inventory">📦 G2 Inventory</button>
+    <button class="tab" data-tab="xfer-in">⬇ Transfer In</button>
+    <button class="tab" data-tab="xfer-out">⬆ Transfer Out</button>
+    <button class="tab" data-tab="settings">⚙ Settings</button>
+  </div>
 
-    <!-- TOP NAV -->
-    <nav class="top-nav">
-      <div class="nav-left">
-        <div class="nav-logo">
-          <span class="nav-logo-icon">⬡</span>
-          <span class="nav-logo-name">RON<span>SYS</span></span>
-        </div>
-        <div class="nav-subtitle">Inventory v2.0</div>
+  <!-- ── TAB: INVENTORY ── -->
+  <section class="tab-panel active" id="tab-inventory">
+    <div class="panel-toolbar">
+      <div class="search-wrap">
+        <span class="si">⌕</span>
+        <input id="inv-search" class="search-box" type="text" placeholder="Search model, brand, type…" autocomplete="off" />
+        <button class="search-x" id="inv-search-clear">✕</button>
       </div>
-      <div class="nav-right">
-        <div class="default-store-wrap">
-          <label class="ds-label">Default Store</label>
-          <select id="default-store" class="ds-select">
-            <option value="G1">G1</option>
-            <option value="G2">G2</option>
-            <option value="G3">G3</option>
-          </select>
-        </div>
-        <button class="icon-btn" id="btn-toggle-log" title="Activity Log">
-          <span>📋</span>
-          <span class="badge-count" id="log-badge">0</span>
-        </button>
-        <button class="icon-btn" id="btn-toggle-chat" title="Ron Assistant">
-          <span>💬</span>
-        </button>
+      <div class="filter-strip">
+        <select id="inv-f-brand" class="fsel">
+          <option value="">All Brands</option>
+          <option value="Apple">iPhone</option>
+          <option value="Samsung">Samsung</option>
+          <option value="Samsung-S">Samsung S</option>
+          <option value="Samsung-Note">Samsung Note</option>
+          <option value="Samsung-A">Samsung A</option>
+          <option value="Motorola">Motorola</option>
+          <option value="Apple iPad">iPad</option>
+        </select>
+        <select id="inv-f-type" class="fsel">
+          <option value="">All Types</option>
+          <option value="LCD">LCD</option>
+          <option value="Digitizer">Digitizer</option>
+        </select>
+        <select id="inv-f-net" class="fsel">
+          <option value="">All Networks</option>
+          <option value="Universal">Universal</option>
+          <option value="4G">4G</option>
+          <option value="5G">5G</option>
+          <option value="Unknown">Unknown</option>
+        </select>
+        <button class="btn-ghost-xs" id="inv-clear-filters">Clear</button>
       </div>
-    </nav>
-
-    <!-- SUMMARY BAR -->
-    <div class="summary-bar" id="summary-bar">
-      <div class="sum-block" id="sum-total">
-        <div class="sum-val" id="sum-total-val">0</div>
-        <div class="sum-lbl">Total Units</div>
-      </div>
-      <div class="sum-divider"></div>
-      <div class="sum-block sum-brand" data-filter-brand="Apple">
-        <div class="sum-val" id="sum-apple">0</div>
-        <div class="sum-lbl">iPhone</div>
-      </div>
-      <div class="sum-block sum-brand" data-filter-brand="Samsung">
-        <div class="sum-val" id="sum-samsung">0</div>
-        <div class="sum-lbl">Samsung</div>
-      </div>
-      <div class="sum-block sum-brand" data-filter-brand="Motorola">
-        <div class="sum-val" id="sum-motorola">0</div>
-        <div class="sum-lbl">Motorola</div>
-      </div>
-      <div class="sum-block sum-brand" data-filter-brand="Apple iPad">
-        <div class="sum-val" id="sum-ipad">0</div>
-        <div class="sum-lbl">iPad</div>
-      </div>
-      <div class="sum-divider"></div>
-      <div class="sum-block sum-store" data-filter-store="G1">
-        <div class="sum-val" id="sum-g1">0</div>
-        <div class="sum-lbl">G1</div>
-      </div>
-      <div class="sum-block sum-store" data-filter-store="G2">
-        <div class="sum-val" id="sum-g2">0</div>
-        <div class="sum-lbl">G2</div>
-      </div>
-      <div class="sum-block sum-store" data-filter-store="G3">
-        <div class="sum-val" id="sum-g3">0</div>
-        <div class="sum-lbl">G3</div>
+      <div class="toolbar-actions">
+        <button class="btn-red" id="btn-add-item">+ Add Model</button>
+        <button class="btn-outline-sm" id="btn-export-inv-csv">⬇ CSV</button>
       </div>
     </div>
 
-    <!-- MAIN LAYOUT -->
-    <div class="app-body">
+    <div class="table-scroll">
+      <table class="inv-table" id="inv-table">
+        <thead>
+          <tr>
+            <th>Brand</th><th>Model</th><th>Network</th>
+            <th>Type</th><th>Qty</th><th>Notes</th>
+            <th>Updated</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="inv-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="inv-empty" style="display:none">
+        <div>📦</div><div>No items found</div>
+      </div>
+    </div>
+    <div class="table-foot" id="inv-foot"></div>
+  </section>
 
-      <!-- LEFT: TABLE PANEL -->
-      <div class="table-panel" id="table-panel">
-
-        <!-- CONTROLS -->
-        <div class="controls-bar">
-          <div class="search-wrap">
-            <span class="search-icon">⌕</span>
-            <input type="text" id="search-input" class="search-input" placeholder="Search model, brand, type…" autocomplete="off" />
-            <button class="search-clear" id="search-clear">✕</button>
-          </div>
-          <div class="filter-row">
-            <select id="filter-brand" class="filter-sel">
-              <option value="">All Brands</option>
+  <!-- ── TAB: TRANSFER IN ── -->
+  <section class="tab-panel" id="tab-xfer-in">
+    <div class="panel-toolbar">
+      <div class="xfer-form-card" id="xfer-in-form-card">
+        <div class="xfer-form-title">⬇ New Transfer In — Parts Received into G2</div>
+        <div class="xfer-form-grid">
+          <div class="fg"><label>Date *</label>
+            <input type="date" id="xi-date" class="fi" /></div>
+          <div class="fg"><label>From Store *</label>
+            <select id="xi-from" class="fi">
+              <option value="G1">G1</option>
+              <option value="G3">G3</option>
+              <option value="Warehouse">Warehouse</option>
+              <option value="Other">Other</option>
+            </select></div>
+          <div class="fg"><label>Brand *</label>
+            <select id="xi-brand" class="fi">
               <option value="Apple">iPhone</option>
               <option value="Samsung">Samsung</option>
-              <option value="Samsung-S">Samsung S</option>
-              <option value="Samsung-Note">Samsung Note</option>
-              <option value="Samsung-A">Samsung A</option>
               <option value="Motorola">Motorola</option>
               <option value="Apple iPad">iPad</option>
-            </select>
-            <select id="filter-type" class="filter-sel">
-              <option value="">All Types</option>
-              <option value="LCD">LCD</option>
-              <option value="Digitizer">Digitizer</option>
-            </select>
-            <select id="filter-store" class="filter-sel">
-              <option value="">All Stores</option>
-              <option value="G1">G1</option>
-              <option value="G2">G2</option>
-              <option value="G3">G3</option>
-            </select>
-            <button class="btn-ghost-sm" id="btn-clear-filters">Clear</button>
-          </div>
-          <div class="action-row">
-            <button class="btn-primary" id="btn-add">+ Add Model</button>
-            <button class="btn-outline" id="btn-export">↓ CSV</button>
-            <button class="btn-outline" id="btn-import">↑ Import</button>
-            <button class="btn-danger-ghost" id="btn-reset">↺ Reset</button>
-          </div>
-        </div>
-
-        <!-- TABLE -->
-        <div class="table-wrap" id="table-wrap">
-          <table class="inv-table" id="inv-table">
-            <thead>
-              <tr>
-                <th>Brand</th>
-                <th>Model</th>
-                <th>Network</th>
-                <th>Type</th>
-                <th>Store</th>
-                <th>Qty</th>
-                <th>Notes</th>
-                <th>Updated</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="inv-tbody"></tbody>
-          </table>
-          <div class="empty-state" id="empty-state" style="display:none">
-            <div class="empty-icon">📦</div>
-            <div class="empty-text">No items found</div>
-            <div class="empty-sub">Try adjusting your search or filters</div>
-          </div>
-        </div>
-        <div class="table-footer" id="table-footer"></div>
-      </div>
-
-    </div><!-- /app-body -->
-  </div><!-- /app -->
-
-  <!-- ══════════════════════════════════════════
-       CHAT DRAWER
-  ══════════════════════════════════════════ -->
-  <div class="drawer chat-drawer" id="chat-drawer">
-    <div class="drawer-header">
-      <div class="drawer-title">
-        <span class="drawer-icon">💬</span> Ron Inventory Assistant
-      </div>
-      <button class="drawer-close" id="chat-close">✕</button>
-    </div>
-    <div class="chat-messages" id="chat-messages">
-      <div class="chat-msg bot">
-        <div class="chat-bubble">
-          Hey! I'm Ron. Tell me what you need.<br><br>
-          Try: <em>"add 4 iphone 11 lcd"</em><br>
-          or: <em>"transfer 2 s21 from g1 to g2"</em><br>
-          or: <em>"show iphone 14"</em>
-        </div>
-      </div>
-    </div>
-    <div class="chat-undo-bar" id="chat-undo-bar" style="display:none">
-      <span id="chat-undo-label">Last action applied</span>
-      <button class="btn-undo" id="btn-undo">↩ Undo</button>
-    </div>
-    <div class="chat-input-row">
-      <input type="text" id="chat-input" class="chat-input" placeholder="Type a command…" autocomplete="off" />
-      <button class="chat-send" id="chat-send">→</button>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════
-       ACTIVITY LOG DRAWER
-  ══════════════════════════════════════════ -->
-  <div class="drawer log-drawer" id="log-drawer">
-    <div class="drawer-header">
-      <div class="drawer-title">
-        <span class="drawer-icon">📋</span> Activity Log
-      </div>
-      <button class="drawer-close" id="log-close">✕</button>
-    </div>
-    <div class="log-list" id="log-list">
-      <div class="log-empty">No activity yet.</div>
-    </div>
-    <div class="drawer-footer">
-      <button class="btn-ghost-sm" id="btn-clear-log">Clear Log</button>
-    </div>
-  </div>
-
-  <!-- DRAWER BACKDROP -->
-  <div class="drawer-backdrop" id="drawer-backdrop"></div>
-
-  <!-- ══════════════════════════════════════════
-       MODAL: Add / Edit
-  ══════════════════════════════════════════ -->
-  <div class="modal-overlay" id="modal-overlay" style="display:none">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 class="modal-title" id="modal-title">Add New Model</h2>
-        <button class="modal-close" id="modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Brand *</label>
-            <select id="f-brand">
-              <option value="Apple">Apple (iPhone)</option>
-              <option value="Samsung">Samsung</option>
-              <option value="Motorola">Motorola</option>
-              <option value="Apple iPad">Apple (iPad)</option>
-            </select>
-          </div>
-          <div class="form-group" id="fg-samsung-series" style="display:none">
-            <label>Samsung Series</label>
-            <select id="f-samsung-series">
-              <option value="S">S Series</option>
-              <option value="Note">Note Series</option>
-              <option value="A">A Series</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Model Name *</label>
-            <input type="text" id="f-model" placeholder="e.g. iPhone 15 Pro Max" />
-          </div>
-          <div class="form-group">
-            <label>Part Type *</label>
-            <select id="f-type">
-              <option value="LCD">LCD</option>
-              <option value="Digitizer">Digitizer</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Network / Version</label>
-            <select id="f-network">
+            </select></div>
+          <div class="fg fg-wide"><label>Model *</label>
+            <input type="text" id="xi-model" class="fi" placeholder="e.g. iPhone 13 Pro" autocomplete="off" />
+            <div class="model-suggest" id="xi-suggest"></div></div>
+          <div class="fg"><label>Network</label>
+            <select id="xi-net" class="fi">
               <option value="Universal">Universal</option>
               <option value="4G">4G</option>
               <option value="5G">5G</option>
               <option value="Unknown">Unknown</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Store *</label>
-            <select id="f-store">
+            </select></div>
+          <div class="fg"><label>Part Type *</label>
+            <select id="xi-type" class="fi">
+              <option value="LCD">LCD</option>
+              <option value="Digitizer">Digitizer</option>
+            </select></div>
+          <div class="fg"><label>Qty *</label>
+            <input type="number" id="xi-qty" class="fi" value="1" min="1" /></div>
+          <div class="fg fg-wide"><label>Note (optional)</label>
+            <input type="text" id="xi-note" class="fi" placeholder="Optional…" /></div>
+        </div>
+        <div class="xfer-form-foot">
+          <button class="btn-ghost-xs" id="xi-reset">Reset</button>
+          <button class="btn-red" id="xi-submit">⬇ Submit Transfer In</button>
+        </div>
+      </div>
+
+      <div class="xfer-log-toolbar">
+        <div class="search-wrap">
+          <span class="si">⌕</span>
+          <input id="xi-search" class="search-box" type="text" placeholder="Search transfers…" autocomplete="off" />
+        </div>
+        <select id="xi-f-store" class="fsel">
+          <option value="">All Sources</option>
+          <option value="G1">G1</option>
+          <option value="G3">G3</option>
+          <option value="Warehouse">Warehouse</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="date" id="xi-f-date-from" class="fsel date-fsel" title="From date" />
+        <input type="date" id="xi-f-date-to" class="fsel date-fsel" title="To date" />
+        <button class="btn-ghost-xs" id="xi-clear-f">Clear</button>
+        <button class="btn-outline-sm" id="btn-export-xi-csv">⬇ CSV</button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="sheets-table" id="xi-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Date</th><th>From</th><th>Brand</th>
+            <th>Model</th><th>Net</th><th>Type</th><th>Qty</th>
+            <th>Note</th><th>Logged</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="xi-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="xi-empty" style="display:none">
+        <div>📋</div><div>No transfer-in records yet</div>
+      </div>
+    </div>
+    <div class="table-foot" id="xi-foot"></div>
+  </section>
+
+  <!-- ── TAB: TRANSFER OUT ── -->
+  <section class="tab-panel" id="tab-xfer-out">
+    <div class="panel-toolbar">
+      <div class="xfer-form-card" id="xfer-out-form-card">
+        <div class="xfer-form-title">⬆ New Transfer Out — Parts Leaving G2</div>
+        <div class="xfer-form-grid">
+          <div class="fg"><label>Date *</label>
+            <input type="date" id="xo-date" class="fi" /></div>
+          <div class="fg"><label>To Store *</label>
+            <select id="xo-to" class="fi">
               <option value="G1">G1</option>
-              <option value="G2">G2</option>
               <option value="G3">G3</option>
-            </select>
-          </div>
+              <option value="Warehouse">Warehouse</option>
+              <option value="Other">Other</option>
+            </select></div>
+          <div class="fg"><label>Brand *</label>
+            <select id="xo-brand" class="fi">
+              <option value="Apple">iPhone</option>
+              <option value="Samsung">Samsung</option>
+              <option value="Motorola">Motorola</option>
+              <option value="Apple iPad">iPad</option>
+            </select></div>
+          <div class="fg fg-wide"><label>Model *</label>
+            <input type="text" id="xo-model" class="fi" placeholder="e.g. Samsung S21" autocomplete="off" />
+            <div class="model-suggest" id="xo-suggest"></div></div>
+          <div class="fg"><label>Network</label>
+            <select id="xo-net" class="fi">
+              <option value="Universal">Universal</option>
+              <option value="4G">4G</option>
+              <option value="5G">5G</option>
+              <option value="Unknown">Unknown</option>
+            </select></div>
+          <div class="fg"><label>Part Type *</label>
+            <select id="xo-type" class="fi">
+              <option value="LCD">LCD</option>
+              <option value="Digitizer">Digitizer</option>
+            </select></div>
+          <div class="fg"><label>Qty *</label>
+            <input type="number" id="xo-qty" class="fi" value="1" min="1" /></div>
+          <div class="fg fg-wide"><label>Note (optional)</label>
+            <input type="text" id="xo-note" class="fi" placeholder="Optional…" /></div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Quantity</label>
-            <input type="number" id="f-qty" value="0" min="0" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Notes</label>
-          <input type="text" id="f-notes" placeholder="Compatibility notes, color, OEM/Aftermarket…" />
+        <div class="xfer-form-foot">
+          <button class="btn-ghost-xs" id="xo-reset">Reset</button>
+          <button class="btn-red" id="xo-submit">⬆ Submit Transfer Out</button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-ghost-sm" id="modal-cancel">Cancel</button>
-        <button class="btn-primary" id="modal-save">Save Item</button>
+
+      <div class="xfer-log-toolbar">
+        <div class="search-wrap">
+          <span class="si">⌕</span>
+          <input id="xo-search" class="search-box" type="text" placeholder="Search transfers…" autocomplete="off" />
+        </div>
+        <select id="xo-f-store" class="fsel">
+          <option value="">All Destinations</option>
+          <option value="G1">G1</option>
+          <option value="G3">G3</option>
+          <option value="Warehouse">Warehouse</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="date" id="xo-f-date-from" class="fsel date-fsel" title="From date" />
+        <input type="date" id="xo-f-date-to" class="fsel date-fsel" title="To date" />
+        <button class="btn-ghost-xs" id="xo-clear-f">Clear</button>
+        <button class="btn-outline-sm" id="btn-export-xo-csv">⬇ CSV</button>
       </div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="sheets-table" id="xo-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Date</th><th>To</th><th>Brand</th>
+            <th>Model</th><th>Net</th><th>Type</th><th>Qty</th>
+            <th>Note</th><th>Logged</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="xo-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="xo-empty" style="display:none">
+        <div>📋</div><div>No transfer-out records yet</div>
+      </div>
+    </div>
+    <div class="table-foot" id="xo-foot"></div>
+  </section>
+
+  <!-- ── TAB: SETTINGS ── -->
+  <section class="tab-panel" id="tab-settings">
+    <div class="settings-grid">
+      <div class="settings-card">
+        <div class="sc-title">Backup & Export</div>
+        <div class="sc-row"><button class="btn-outline-sm" id="btn-export-json">⬇ Export Full Backup (JSON)</button></div>
+        <div class="sc-row"><button class="btn-outline-sm" id="btn-import-json">⬆ Import Backup (JSON)</button></div>
+        <div class="sc-row"><button class="btn-outline-sm" id="btn-export-inv-csv2">⬇ G2 Inventory CSV</button></div>
+        <div class="sc-row"><button class="btn-outline-sm" id="btn-export-xi-csv2">⬇ Transfer In CSV</button></div>
+        <div class="sc-row"><button class="btn-outline-sm" id="btn-export-xo-csv2">⬇ Transfer Out CSV</button></div>
+      </div>
+      <div class="settings-card">
+        <div class="sc-title">Danger Zone</div>
+        <div class="sc-row"><button class="btn-danger-sm" id="btn-reset-inv">Reset Inventory to Default</button></div>
+        <div class="sc-row"><button class="btn-danger-sm" id="btn-clear-xi">Clear Transfer In Log</button></div>
+        <div class="sc-row"><button class="btn-danger-sm" id="btn-clear-xo">Clear Transfer Out Log</button></div>
+        <div class="sc-row"><button class="btn-danger-sm" id="btn-clear-all">⚠ Clear All Data</button></div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════════════
+     ASSISTANT PANEL (RIGHT DRAWER)
+══════════════════════════════════════════════ -->
+<div class="side-panel" id="asst-panel">
+  <div class="sp-header">
+    <div class="sp-title">⚡ Ron Inventory Assistant</div>
+    <button class="sp-close" id="asst-close">✕</button>
+  </div>
+
+  <!-- Quick action tabs inside panel -->
+  <div class="sp-tabs">
+    <button class="sp-tab active" data-stab="xferin">⬇ In</button>
+    <button class="sp-tab" data-stab="xferout">⬆ Out</button>
+    <button class="sp-tab" data-stab="addinv">+ Add</button>
+    <button class="sp-tab" data-stab="reminv">− Remove</button>
+    <button class="sp-tab" data-stab="search">🔍</button>
+    <button class="sp-tab" data-stab="cmd">💬</button>
+  </div>
+
+  <!-- Transfer In quick form -->
+  <div class="sp-body sp-tab-body active" id="stab-xferin">
+    <div class="sp-form-title">Transfer In to G2</div>
+    <div class="sp-form">
+      <div class="fg"><label>From Store</label>
+        <select id="sp-xi-from" class="fi">
+          <option value="G1">G1</option><option value="G3">G3</option>
+          <option value="Warehouse">Warehouse</option><option value="Other">Other</option>
+        </select></div>
+      <div class="fg"><label>Brand</label>
+        <select id="sp-xi-brand" class="fi">
+          <option value="Apple">iPhone</option><option value="Samsung">Samsung</option>
+          <option value="Motorola">Motorola</option><option value="Apple iPad">iPad</option>
+        </select></div>
+      <div class="fg"><label>Model</label>
+        <input type="text" id="sp-xi-model" class="fi" placeholder="e.g. iPhone 13" autocomplete="off" />
+        <div class="model-suggest" id="sp-xi-suggest"></div></div>
+      <div class="fg"><label>Network</label>
+        <select id="sp-xi-net" class="fi">
+          <option value="Universal">Universal</option><option value="4G">4G</option>
+          <option value="5G">5G</option><option value="Unknown">Unknown</option>
+        </select></div>
+      <div class="fg"><label>Type</label>
+        <select id="sp-xi-type" class="fi">
+          <option value="LCD">LCD</option><option value="Digitizer">Digitizer</option>
+        </select></div>
+      <div class="fg"><label>Qty</label>
+        <input type="number" id="sp-xi-qty" class="fi" value="1" min="1" /></div>
+      <div class="fg"><label>Date</label>
+        <input type="date" id="sp-xi-date" class="fi" /></div>
+      <div class="fg"><label>Note</label>
+        <input type="text" id="sp-xi-note" class="fi" placeholder="Optional…" /></div>
+      <button class="btn-red w100" id="sp-xi-submit">⬇ Transfer In</button>
     </div>
   </div>
 
-  <!-- MODAL: Delete confirm -->
-  <div class="modal-overlay" id="delete-overlay" style="display:none">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h2 class="modal-title">Delete Item?</h2>
-        <button class="modal-close" id="del-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <p id="del-msg" style="color:var(--text-dim); margin:0"></p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-ghost-sm" id="del-cancel">Cancel</button>
-        <button class="btn-danger" id="del-confirm">Delete</button>
-      </div>
+  <!-- Transfer Out quick form -->
+  <div class="sp-body sp-tab-body" id="stab-xferout">
+    <div class="sp-form-title">Transfer Out from G2</div>
+    <div class="sp-form">
+      <div class="fg"><label>To Store</label>
+        <select id="sp-xo-to" class="fi">
+          <option value="G1">G1</option><option value="G3">G3</option>
+          <option value="Warehouse">Warehouse</option><option value="Other">Other</option>
+        </select></div>
+      <div class="fg"><label>Brand</label>
+        <select id="sp-xo-brand" class="fi">
+          <option value="Apple">iPhone</option><option value="Samsung">Samsung</option>
+          <option value="Motorola">Motorola</option><option value="Apple iPad">iPad</option>
+        </select></div>
+      <div class="fg"><label>Model</label>
+        <input type="text" id="sp-xo-model" class="fi" placeholder="e.g. Samsung S21" autocomplete="off" />
+        <div class="model-suggest" id="sp-xo-suggest"></div></div>
+      <div class="fg"><label>Network</label>
+        <select id="sp-xo-net" class="fi">
+          <option value="Universal">Universal</option><option value="4G">4G</option>
+          <option value="5G">5G</option><option value="Unknown">Unknown</option>
+        </select></div>
+      <div class="fg"><label>Type</label>
+        <select id="sp-xo-type" class="fi">
+          <option value="LCD">LCD</option><option value="Digitizer">Digitizer</option>
+        </select></div>
+      <div class="fg"><label>Qty</label>
+        <input type="number" id="sp-xo-qty" class="fi" value="1" min="1" /></div>
+      <div class="fg"><label>Date</label>
+        <input type="date" id="sp-xo-date" class="fi" /></div>
+      <div class="fg"><label>Note</label>
+        <input type="text" id="sp-xo-note" class="fi" placeholder="Optional…" /></div>
+      <button class="btn-red w100" id="sp-xo-submit">⬆ Transfer Out</button>
     </div>
   </div>
 
-  <!-- MODAL: Reset confirm -->
-  <div class="modal-overlay" id="reset-overlay" style="display:none">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h2 class="modal-title">Reset to Demo Data?</h2>
-        <button class="modal-close" id="reset-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="color:var(--text-dim); margin:0">This will erase all current inventory and reload the default demo data. This cannot be undone.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-ghost-sm" id="reset-cancel">Cancel</button>
-        <button class="btn-danger" id="reset-confirm">Reset Everything</button>
-      </div>
+  <!-- Add Inventory quick form -->
+  <div class="sp-body sp-tab-body" id="stab-addinv">
+    <div class="sp-form-title">Add to G2 Inventory</div>
+    <div class="sp-form">
+      <div class="fg"><label>Brand</label>
+        <select id="sp-add-brand" class="fi">
+          <option value="Apple">iPhone</option><option value="Samsung">Samsung</option>
+          <option value="Motorola">Motorola</option><option value="Apple iPad">iPad</option>
+        </select></div>
+      <div class="fg"><label>Model</label>
+        <input type="text" id="sp-add-model" class="fi" placeholder="e.g. iPhone 11" autocomplete="off" />
+        <div class="model-suggest" id="sp-add-suggest"></div></div>
+      <div class="fg"><label>Network</label>
+        <select id="sp-add-net" class="fi">
+          <option value="Universal">Universal</option><option value="4G">4G</option>
+          <option value="5G">5G</option><option value="Unknown">Unknown</option>
+        </select></div>
+      <div class="fg"><label>Type</label>
+        <select id="sp-add-type" class="fi">
+          <option value="LCD">LCD</option><option value="Digitizer">Digitizer</option>
+        </select></div>
+      <div class="fg"><label>Qty</label>
+        <input type="number" id="sp-add-qty" class="fi" value="1" min="1" /></div>
+      <div class="fg"><label>Note</label>
+        <input type="text" id="sp-add-note" class="fi" placeholder="Optional…" /></div>
+      <button class="btn-red w100" id="sp-add-submit">+ Add Inventory</button>
     </div>
   </div>
 
-  <!-- Hidden CSV import input -->
-  <input type="file" id="csv-input" accept=".csv" style="display:none" />
+  <!-- Remove Inventory quick form -->
+  <div class="sp-body sp-tab-body" id="stab-reminv">
+    <div class="sp-form-title">Remove from G2 Inventory</div>
+    <div class="sp-form">
+      <div class="fg"><label>Brand</label>
+        <select id="sp-rem-brand" class="fi">
+          <option value="Apple">iPhone</option><option value="Samsung">Samsung</option>
+          <option value="Motorola">Motorola</option><option value="Apple iPad">iPad</option>
+        </select></div>
+      <div class="fg"><label>Model</label>
+        <input type="text" id="sp-rem-model" class="fi" placeholder="e.g. Note 10" autocomplete="off" />
+        <div class="model-suggest" id="sp-rem-suggest"></div></div>
+      <div class="fg"><label>Network</label>
+        <select id="sp-rem-net" class="fi">
+          <option value="Universal">Universal</option><option value="4G">4G</option>
+          <option value="5G">5G</option><option value="Unknown">Unknown</option>
+        </select></div>
+      <div class="fg"><label>Type</label>
+        <select id="sp-rem-type" class="fi">
+          <option value="LCD">LCD</option><option value="Digitizer">Digitizer</option>
+        </select></div>
+      <div class="fg"><label>Qty</label>
+        <input type="number" id="sp-rem-qty" class="fi" value="1" min="1" /></div>
+      <div class="fg"><label>Note</label>
+        <input type="text" id="sp-rem-note" class="fi" placeholder="Optional…" /></div>
+      <button class="btn-red w100" id="sp-rem-submit">− Remove Inventory</button>
+    </div>
+  </div>
 
-  <!-- Toast -->
-  <div class="toast" id="toast"></div>
+  <!-- Search quick form -->
+  <div class="sp-body sp-tab-body" id="stab-search">
+    <div class="sp-form-title">Search G2 Inventory</div>
+    <div class="sp-form">
+      <div class="fg"><label>Model / keyword</label>
+        <input type="text" id="sp-search-q" class="fi" placeholder="e.g. iPhone 14 Pro" autocomplete="off" /></div>
+      <button class="btn-red w100" id="sp-search-submit">🔍 Search</button>
+      <div id="sp-search-results" class="sp-results"></div>
+    </div>
+  </div>
 
-  <script src="script.js"></script>
+  <!-- Text command box -->
+  <div class="sp-body sp-tab-body" id="stab-cmd">
+    <div class="sp-form-title">Casual Command</div>
+    <div class="cmd-hint">
+      Examples:<br>
+      <em>add 4 iphone 11 lcd</em><br>
+      <em>transfer in 3 s21 from g1</em><br>
+      <em>transfer out 2 iphone 11 to g3</em><br>
+      <em>received 5 a15 lcd from warehouse</em><br>
+      <em>send 1 ipad 9 digitizer to g1</em><br>
+      <em>show iphone 14</em>
+    </div>
+    <div class="cmd-messages" id="cmd-messages">
+      <div class="cmd-msg bot"><div class="cmd-bubble">Hey! Type a command above or use the form tabs for more reliable entry.</div></div>
+    </div>
+    <div class="cmd-input-row">
+      <input type="text" id="cmd-input" class="cmd-input" placeholder="Type command…" autocomplete="off" />
+      <button class="btn-red" id="cmd-send">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL BACKDROP -->
+<div class="panel-backdrop" id="panel-backdrop"></div>
+
+<!-- ACTIVITY LOG DRAWER -->
+<div class="side-panel log-panel" id="log-panel">
+  <div class="sp-header">
+    <div class="sp-title">📋 Activity Log</div>
+    <button class="sp-close" id="log-close">✕</button>
+  </div>
+  <div class="sp-body log-body" id="log-list">
+    <div class="log-empty">No activity yet.</div>
+  </div>
+  <div class="sp-footer">
+    <button class="btn-ghost-xs" id="btn-clear-log">Clear Log</button>
+  </div>
+</div>
+
+<!-- MODAL: Add/Edit item -->
+<div class="modal-wrap" id="item-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="item-modal-title">Add New Model</span>
+      <button class="modal-x" id="item-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row2">
+        <div class="fg"><label>Brand *</label>
+          <select id="im-brand" class="fi">
+            <option value="Apple">Apple (iPhone)</option>
+            <option value="Samsung">Samsung</option>
+            <option value="Motorola">Motorola</option>
+            <option value="Apple iPad">Apple (iPad)</option>
+          </select></div>
+        <div class="fg" id="im-ss-wrap" style="display:none"><label>Samsung Series</label>
+          <select id="im-ss" class="fi">
+            <option value="S">S Series</option>
+            <option value="Note">Note Series</option>
+            <option value="A">A Series</option>
+          </select></div>
+      </div>
+      <div class="form-row2">
+        <div class="fg"><label>Model Name *</label>
+          <input type="text" id="im-model" class="fi" placeholder="e.g. iPhone 15 Pro Max" /></div>
+        <div class="fg"><label>Part Type *</label>
+          <select id="im-type" class="fi">
+            <option value="LCD">LCD</option>
+            <option value="Digitizer">Digitizer</option>
+          </select></div>
+      </div>
+      <div class="form-row2">
+        <div class="fg"><label>Network / Version</label>
+          <select id="im-net" class="fi">
+            <option value="Universal">Universal</option>
+            <option value="4G">4G</option>
+            <option value="5G">5G</option>
+            <option value="Unknown">Unknown</option>
+          </select></div>
+        <div class="fg"><label>Quantity</label>
+          <input type="number" id="im-qty" class="fi" value="0" min="0" /></div>
+      </div>
+      <div class="fg"><label>Notes</label>
+        <input type="text" id="im-notes" class="fi" placeholder="Compatibility notes, OEM/aftermarket…" /></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost-xs" id="item-modal-cancel">Cancel</button>
+      <button class="btn-red" id="item-modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirm -->
+<div class="modal-wrap" id="confirm-modal" style="display:none">
+  <div class="modal modal-sm">
+    <div class="modal-hdr">
+      <span id="confirm-title">Confirm</span>
+      <button class="modal-x" id="confirm-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-msg" style="color:var(--dim); margin:0; line-height:1.5"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost-xs" id="confirm-cancel">Cancel</button>
+      <button class="btn-red" id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden inputs -->
+<input type="file" id="json-import-input" accept=".json" style="display:none" />
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
 </body>
 </html>
